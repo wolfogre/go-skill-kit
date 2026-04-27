@@ -21,7 +21,7 @@ type block struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: gocover <coverage.out>")
+		fmt.Fprintln(os.Stderr, "usage: gocoverage <coverage.out>")
 		os.Exit(1)
 	}
 
@@ -31,15 +31,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	modRoot, modName, err := moduleInfo()
+	modRoot, modName, goModCache, err := moduleInfo()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading module info: %v\n", err)
-		os.Exit(1)
-	}
-
-	goModCache, err := goEnv("GOMODCACHE")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading GOMODCACHE: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -95,7 +89,7 @@ func parseCoverage(path string) ([]block, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "mode:") {
+		if line == "" || strings.HasPrefix(line, "mode:") {
 			continue
 		}
 		b, err := parseLine(line)
@@ -160,21 +154,26 @@ func parseLineNum(s string) (int, error) {
 	return strconv.Atoi(s[:dot])
 }
 
-// moduleInfo returns the module root directory and module name from go.mod.
-func moduleInfo() (root, name string, err error) {
-	out, err := exec.Command("go", "env", "GOMOD").Output()
+// moduleInfo returns the module root directory, module name, and GOMODCACHE.
+func moduleInfo() (root, name, goModCache string, err error) {
+	out, err := exec.Command("go", "env", "GOMOD", "GOMODCACHE").Output()
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	gomod := strings.TrimSpace(string(out))
+	lines := strings.SplitN(strings.TrimRight(string(out), "\n"), "\n", 2)
+	gomod := strings.TrimSpace(lines[0])
+	if len(lines) == 2 {
+		goModCache = strings.TrimSpace(lines[1])
+	}
+
 	if gomod == "" || gomod == os.DevNull {
-		return "", "", nil
+		return "", "", goModCache, nil
 	}
 	root = filepath.Dir(gomod)
 
 	f, err := os.Open(gomod)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	defer f.Close()
 
@@ -182,20 +181,11 @@ func moduleInfo() (root, name string, err error) {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(line, "module ") {
-			name = strings.TrimPrefix(line, "module ")
-			name = strings.TrimSpace(name)
+			name = strings.TrimSpace(strings.TrimPrefix(line, "module "))
 			break
 		}
 	}
-	return root, name, scanner.Err()
-}
-
-func goEnv(key string) (string, error) {
-	out, err := exec.Command("go", "env", key).Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
+	return root, name, goModCache, scanner.Err()
 }
 
 // resolveSource finds the source file on disk for a coverage path.
