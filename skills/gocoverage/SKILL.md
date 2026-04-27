@@ -9,10 +9,17 @@ Reads one or more Go coverage files and prints the uncovered source lines with t
 
 ## Step 1: Generate a coverage file
 
-If the user hasn't already provided a `coverage.out`, run:
+If the user hasn't already provided a `coverage.out`, run a targeted test command. Prefer narrow scope over `./...` to keep the output focused:
 
 ```bash
-go test -coverprofile=coverage.out ./...
+# a specific package
+go test -coverprofile=coverage.out ./internal/pkg/foo/...
+
+# a specific test function
+go test -coverprofile=coverage.out -run TestFoo ./internal/pkg/foo/...
+
+# a specific package with coverage across all packages it calls
+go test -coverprofile=coverage.out -coverpkg=./... ./internal/pkg/foo/...
 ```
 
 Run this from the module root (where `go.mod` lives).
