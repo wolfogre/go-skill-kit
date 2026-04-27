@@ -11,6 +11,15 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
+  - id: gomodernize
+    binary: gomodernize
+    main: ./cmd/gomodernize
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
 
 archives:
   - formats: [tar.gz]

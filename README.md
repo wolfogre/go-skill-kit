@@ -9,6 +9,7 @@ Each tool under `cmd/` is a standalone binary. The matching skill under `skills/
 | Skill | Binary | Description |
 |-------|--------|-------------|
 | [gocoverage](skills/gocoverage/SKILL.md) | [cmd/gocoverage](cmd/gocoverage/main.go) | Print uncovered Go source lines from a coverage profile |
+| [gomodernize](skills/gomodernize/SKILL.md) | [cmd/gomodernize](cmd/gomodernize/main.go) | Run modernize with analyzers auto-selected by go.mod Go version |
 
 ## Installation
 
