@@ -124,6 +124,13 @@ func parseGoMinorVersion(path string) (int, error) {
 	if len(parts) < 2 {
 		return 0, fmt.Errorf("unexpected go version %q", f.Go.Version)
 	}
-	minor := strings.TrimRight(parts[1], "abcdefghijklmnopqrstuvwxyz")
-	return strconv.Atoi(minor)
+	minor := parts[1]
+	end := 0
+	for end < len(minor) && minor[end] >= '0' && minor[end] <= '9' {
+		end++
+	}
+	if end == 0 {
+		return 0, fmt.Errorf("unexpected go version %q", f.Go.Version)
+	}
+	return strconv.Atoi(minor[:end])
 }
