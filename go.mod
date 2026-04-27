@@ -1,3 +1,3 @@
 module github.com/wolfogre/go-skill-kit
 
-go 1.25
+go 1.26
