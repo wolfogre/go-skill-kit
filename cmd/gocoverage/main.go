@@ -21,14 +21,18 @@ type block struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: gocoverage <coverage.out>")
+		fmt.Fprintln(os.Stderr, "usage: gocoverage <coverage.out> [coverage2.out ...]")
 		os.Exit(1)
 	}
 
-	blocks, err := parseCoverage(os.Args[1])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing coverage: %v\n", err)
-		os.Exit(1)
+	var allBlocks []block
+	for _, arg := range os.Args[1:] {
+		blocks, err := parseCoverage(arg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error parsing coverage %s: %v\n", arg, err)
+			os.Exit(1)
+		}
+		allBlocks = append(allBlocks, blocks...)
 	}
 
 	modRoot, modName, goModCache, err := moduleInfo()
@@ -38,9 +42,9 @@ func main() {
 	}
 
 	// Group uncovered blocks by file, preserving order.
-	fileOrder := []string{}
+	var fileOrder []string
 	fileBlocks := map[string][]block{}
-	for _, b := range blocks {
+	for _, b := range allBlocks {
 		if b.count > 0 {
 			continue
 		}
@@ -51,27 +55,32 @@ func main() {
 	}
 
 	if len(fileOrder) == 0 {
-		fmt.Println("all statements covered!")
+		fmt.Println("# all statements covered!")
 		return
 	}
 
+	fmt.Println("# The following lines are not covered by tests.")
+	fmt.Println()
 	for _, file := range fileOrder {
 		srcPath := resolveSource(file, modName, modRoot, goModCache)
 		lines, err := readLines(srcPath)
 		if err != nil {
-			fmt.Printf("## %s\n(source not found: %v)\n\n", file, err)
+			fmt.Printf("## %s\n\n(source not found: %v)\n\n", file, err)
 			continue
 		}
 
-		fmt.Printf("## %s\n", file)
-		printed := map[int]bool{}
+		fmt.Printf("## %s\n\n", file)
+		lastPrinted := -1
 		for _, b := range fileBlocks[file] {
 			for ln := b.startLine; ln <= b.endLine && ln <= len(lines); ln++ {
-				if printed[ln] {
+				if ln == lastPrinted {
 					continue
 				}
-				printed[ln] = true
-				fmt.Printf("%4d: %s\n", ln, lines[ln-1])
+				if lastPrinted >= 0 && ln > lastPrinted+1 {
+					fmt.Println()
+				}
+				lastPrinted = ln
+				fmt.Printf("%d:%s\n", ln, lines[ln-1])
 			}
 		}
 		fmt.Println()
