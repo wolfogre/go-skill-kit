@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: gofmt
+        run: |
+          files=$(gofmt -l .)
+          if [ -n "$files" ]; then
+            echo "The following files need gofmt:"
+            echo "$files"
+            exit 1
+          fi
+
+      - name: build
+        run: go build ./cmd/...
+
+      - name: vet
+        run: go vet ./cmd/...
+
+      - name: modernize
+        run: go tool modernize -diff ./cmd/...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
