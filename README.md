@@ -20,6 +20,12 @@ go install github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest
 
 Point your Copilot agent at the `skills/` directory. Each `SKILL.md` has a frontmatter `description` that tells the agent when to trigger it automatically.
 
+To download a skill locally (no git clone required):
+
+```bash
+curl -sL https://github.com/wolfogre/go-skill-kit/archive/refs/heads/main.tar.gz | tar xz --strip-components=2 --include='*/skills/gocoverage/*'
+```
+
 ## Development
 
 ```bash
