@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 )
 
 // analyzer pairs a modernize flag name with the minimum Go 1.x minor version
@@ -18,27 +20,27 @@ type analyzer struct {
 }
 
 var analyzers = []analyzer{
-	{"stringsbuilder", 10},  // strings.Builder
-	{"plusbuild", 17},       // //go:build directive
-	{"unsafefuncs", 17},     // unsafe.Add
-	{"any", 18},             // any alias for interface{}
-	{"stringscut", 18},      // strings.Cut
-	{"atomic", 19},          // sync/atomic typed types (atomic.Bool etc.)
-	{"fmtappendf", 19},      // fmt.Appendf
+	{"stringsbuilder", 10},   // strings.Builder
+	{"plusbuild", 17},        // //go:build directive
+	{"unsafefuncs", 17},      // unsafe.Add
+	{"any", 18},              // any alias for interface{}
+	{"stringscut", 18},       // strings.Cut
+	{"atomic", 19},           // sync/atomic typed types (atomic.Bool etc.)
+	{"fmtappendf", 19},       // fmt.Appendf
 	{"stringscutprefix", 20}, // strings.CutPrefix / CutSuffix
-	{"minmax", 21},          // min / max builtins
-	{"slicescontains", 21},  // slices.Contains
-	{"slicessort", 21},      // slices.Sort
-	{"forvar", 22},          // redundant loop-variable re-declaration
-	{"rangeint", 22},        // for i := range n
-	{"reflecttypefor", 22},  // reflect.TypeFor[T]()
-	{"mapsloop", 23},        // maps.Copy / Insert / Clone / Collect
-	{"stditerators", 23},    // range over .All() iterators
-	{"omitzero", 24},        // json omitzero tag
-	{"stringsseq", 24},      // strings.SplitSeq / FieldsSeq
-	{"testingcontext", 24},  // t.Context()
-	{"waitgroup", 25},       // sync.WaitGroup.Go
-	{"newexpr", 26},         // new(expr) builtin
+	{"minmax", 21},           // min / max builtins
+	{"slicescontains", 21},   // slices.Contains
+	{"slicessort", 21},       // slices.Sort
+	{"forvar", 22},           // redundant loop-variable re-declaration
+	{"rangeint", 22},         // for i := range n
+	{"reflecttypefor", 22},   // reflect.TypeFor[T]()
+	{"mapsloop", 23},         // maps.Copy / Insert / Clone / Collect
+	{"stditerators", 23},     // range over .All() iterators
+	{"omitzero", 24},         // json omitzero tag
+	{"stringsseq", 24},       // strings.SplitSeq / FieldsSeq
+	{"testingcontext", 24},   // t.Context()
+	{"waitgroup", 25},        // sync.WaitGroup.Go
+	{"newexpr", 26},          // new(expr) builtin
 }
 
 func main() {
@@ -105,33 +107,23 @@ func readGoMinorVersion() (int, error) {
 	}
 }
 
-func parseGoMinorVersion(gomod string) (int, error) {
-	data, err := os.ReadFile(gomod)
+func parseGoMinorVersion(path string) (int, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
-	for _, line := range strings.Split(string(data), "\n") {
-		rest, ok := strings.CutPrefix(strings.TrimSpace(line), "go ")
-		if !ok {
-			continue
-		}
-		// version may be "1.21", "1.21.0", or "1.22rc1"
-		parts := strings.SplitN(strings.TrimSpace(rest), ".", 3)
-		if len(parts) >= 2 {
-			minor := parts[1]
-			// strip any non-digit suffix (e.g. "rc1")
-			for i, c := range minor {
-				if c < '0' || c > '9' {
-					minor = minor[:i]
-					break
-				}
-			}
-			v, err := strconv.Atoi(minor)
-			if err != nil {
-				return 0, fmt.Errorf("invalid go version %q in go.mod", rest)
-			}
-			return v, nil
-		}
+	f, err := modfile.ParseLax(path, data, nil)
+	if err != nil {
+		return 0, err
 	}
-	return 0, fmt.Errorf("go directive not found in go.mod")
+	if f.Go == nil {
+		return 0, fmt.Errorf("go directive not found in go.mod")
+	}
+	// version is "1.21", "1.21.0", or "1.22rc1" — parse the minor part
+	parts := strings.SplitN(f.Go.Version, ".", 3)
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("unexpected go version %q", f.Go.Version)
+	}
+	minor := strings.TrimRight(parts[1], "abcdefghijklmnopqrstuvwxyz")
+	return strconv.Atoi(minor)
 }

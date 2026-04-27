@@ -6,17 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
+
+	"golang.org/x/mod/modfile"
+	"golang.org/x/tools/cover"
 )
 
-// block represents a coverage block parsed from coverage.out.
-// Format: <file>:<startLine>.<startCol>,<endLine>.<endCol> <stmts> <count>
 type block struct {
 	file      string
 	startLine int
 	endLine   int
-	count     int
 }
 
 func main() {
@@ -27,12 +26,18 @@ func main() {
 
 	var allBlocks []block
 	for _, arg := range os.Args[1:] {
-		blocks, err := parseCoverage(arg)
+		profiles, err := cover.ParseProfiles(arg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error parsing coverage %s: %v\n", arg, err)
 			os.Exit(1)
 		}
-		allBlocks = append(allBlocks, blocks...)
+		for _, p := range profiles {
+			for _, b := range p.Blocks {
+				if b.Count == 0 {
+					allBlocks = append(allBlocks, block{p.FileName, b.StartLine, b.EndLine})
+				}
+			}
+		}
 	}
 
 	modRoot, modName, goModCache, err := moduleInfo()
@@ -45,9 +50,6 @@ func main() {
 	var fileOrder []string
 	fileBlocks := map[string][]block{}
 	for _, b := range allBlocks {
-		if b.count > 0 {
-			continue
-		}
 		if _, ok := fileBlocks[b.file]; !ok {
 			fileOrder = append(fileOrder, b.file)
 		}
@@ -87,79 +89,6 @@ func main() {
 	}
 }
 
-func parseCoverage(path string) ([]block, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = f.Close() }()
-
-	var blocks []block
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" || strings.HasPrefix(line, "mode:") {
-			continue
-		}
-		b, err := parseLine(line)
-		if err != nil {
-			return nil, fmt.Errorf("invalid line %q: %w", line, err)
-		}
-		blocks = append(blocks, b)
-	}
-	return blocks, scanner.Err()
-}
-
-// parseLine parses a line like:
-// github.com/foo/bar/pkg.go:10.5,20.10 3 0
-func parseLine(line string) (block, error) {
-	// Split off the count and stmts at the end.
-	lastSpace := strings.LastIndex(line, " ")
-	if lastSpace < 0 {
-		return block{}, fmt.Errorf("missing count")
-	}
-	count, err := strconv.Atoi(line[lastSpace+1:])
-	if err != nil {
-		return block{}, err
-	}
-	rest := line[:lastSpace]
-
-	secondSpace := strings.LastIndex(rest, " ")
-	if secondSpace < 0 {
-		return block{}, fmt.Errorf("missing stmts")
-	}
-	rest = rest[:secondSpace]
-
-	// rest is now "<file>:<startLine>.<startCol>,<endLine>.<endCol>"
-	colon := strings.LastIndex(rest, ":")
-	if colon < 0 {
-		return block{}, fmt.Errorf("missing colon")
-	}
-	file := rest[:colon]
-	coords := rest[colon+1:]
-
-	before, after, ok := strings.Cut(coords, ",")
-	if !ok {
-		return block{}, fmt.Errorf("missing comma in coords")
-	}
-	startLine, err := parseLineNum(before)
-	if err != nil {
-		return block{}, err
-	}
-	endLine, err := parseLineNum(after)
-	if err != nil {
-		return block{}, err
-	}
-
-	return block{file: file, startLine: startLine, endLine: endLine, count: count}, nil
-}
-
-// parseLineNum parses "line.col" and returns the line number.
-func parseLineNum(s string) (int, error) {
-	line, _, _ := strings.Cut(s, ".")
-	return strconv.Atoi(line)
-}
-
 // moduleInfo returns the module root directory, module name, and GOMODCACHE.
 func moduleInfo() (root, name, goModCache string, err error) {
 	out, err := exec.Command("go", "env", "GOMOD", "GOMODCACHE").Output()
@@ -177,21 +106,18 @@ func moduleInfo() (root, name, goModCache string, err error) {
 	}
 	root = filepath.Dir(gomod)
 
-	f, err := os.Open(gomod)
+	data, err := os.ReadFile(gomod)
 	if err != nil {
 		return "", "", "", err
 	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if rest, ok := strings.CutPrefix(line, "module "); ok {
-			name = strings.TrimSpace(rest)
-			break
-		}
+	f, err := modfile.ParseLax(gomod, data, nil)
+	if err != nil {
+		return "", "", "", err
 	}
-	return root, name, goModCache, scanner.Err()
+	if f.Module != nil {
+		name = f.Module.Mod.Path
+	}
+	return root, name, goModCache, nil
 }
 
 // resolveSource finds the source file on disk for a coverage path.
@@ -204,12 +130,8 @@ func resolveSource(coverFile, modName, modRoot, goModCache string) string {
 		return filepath.Join(modRoot, ".")
 	}
 
-	// External module: path is <module>@<version>/file or <module>/file.
-	// Try GOMODCACHE: strip to find module@version prefix.
+	// External module: glob GOMODCACHE for <module>@<version>/file.
 	if goModCache != "" {
-		// Find the longest prefix that looks like a module path (contains @).
-		// Coverage tool stores: <module>/<file>, and module cache is <module>@<version>.
-		// We can't know the version from coverage alone, so glob for it.
 		parts := strings.Split(coverFile, "/")
 		for i := len(parts) - 1; i > 0; i-- {
 			modPath := strings.Join(parts[:i], "/")
@@ -222,7 +144,6 @@ func resolveSource(coverFile, modName, modRoot, goModCache string) string {
 		}
 	}
 
-	// Fallback: try as a relative path.
 	return coverFile
 }
 
