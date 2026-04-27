@@ -92,7 +92,7 @@ func parseCoverage(path string) ([]block, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var blocks []block
 	scanner := bufio.NewScanner(f)
@@ -138,15 +138,15 @@ func parseLine(line string) (block, error) {
 	file := rest[:colon]
 	coords := rest[colon+1:]
 
-	comma := strings.Index(coords, ",")
-	if comma < 0 {
+	before, after, ok := strings.Cut(coords, ",")
+	if !ok {
 		return block{}, fmt.Errorf("missing comma in coords")
 	}
-	startLine, err := parseLineNum(coords[:comma])
+	startLine, err := parseLineNum(before)
 	if err != nil {
 		return block{}, err
 	}
-	endLine, err := parseLineNum(coords[comma+1:])
+	endLine, err := parseLineNum(after)
 	if err != nil {
 		return block{}, err
 	}
@@ -156,11 +156,8 @@ func parseLine(line string) (block, error) {
 
 // parseLineNum parses "line.col" and returns the line number.
 func parseLineNum(s string) (int, error) {
-	dot := strings.Index(s, ".")
-	if dot < 0 {
-		return strconv.Atoi(s)
-	}
-	return strconv.Atoi(s[:dot])
+	line, _, _ := strings.Cut(s, ".")
+	return strconv.Atoi(line)
 }
 
 // moduleInfo returns the module root directory, module name, and GOMODCACHE.
@@ -184,13 +181,13 @@ func moduleInfo() (root, name, goModCache string, err error) {
 	if err != nil {
 		return "", "", "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "module ") {
-			name = strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		if rest, ok := strings.CutPrefix(line, "module "); ok {
+			name = strings.TrimSpace(rest)
 			break
 		}
 	}
@@ -234,7 +231,7 @@ func readLines(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var lines []string
 	scanner := bufio.NewScanner(f)
