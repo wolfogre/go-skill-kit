@@ -25,7 +25,7 @@ var analyzers = []analyzer{
 	{"unsafefuncs", 17},      // unsafe.Add
 	{"any", 18},              // any alias for interface{}
 	{"stringscut", 18},       // strings.Cut
-	{"atomic", 19},           // sync/atomic typed types (atomic.Bool etc.)
+	{"atomictypes", 19},      // sync/atomic typed types (atomic.Bool etc.)
 	{"fmtappendf", 19},       // fmt.Appendf
 	{"stringscutprefix", 20}, // strings.CutPrefix / CutSuffix
 	{"minmax", 21},           // min / max builtins
@@ -35,11 +35,12 @@ var analyzers = []analyzer{
 	{"rangeint", 22},         // for i := range n
 	{"reflecttypefor", 22},   // reflect.TypeFor[T]()
 	{"mapsloop", 23},         // maps.Copy / Insert / Clone / Collect
+	{"slicesbackward", 23},   // slices.Backward
 	{"stditerators", 23},     // range over .All() iterators
 	{"omitzero", 24},         // json omitzero tag
 	{"stringsseq", 24},       // strings.SplitSeq / FieldsSeq
 	{"testingcontext", 24},   // t.Context()
-	{"waitgroup", 25},        // sync.WaitGroup.Go
+	{"waitgroupgo", 25},      // sync.WaitGroup.Go
 	{"newexpr", 26},          // new(expr) builtin
 }
 
