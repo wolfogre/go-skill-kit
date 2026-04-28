@@ -17,7 +17,7 @@ jobs:
 
       - name: no binary files
         run: |
-          binaries=$(git ls-files | xargs file --mime-encoding | grep 'charset=binary' | cut -d: -f1)
+          binaries=$(git ls-files | xargs file --mime-encoding | grep ': binary$' | cut -d: -f1)
           if [ -n "$binaries" ]; then
             echo "Binary files found in repository:"
             echo "$binaries"
