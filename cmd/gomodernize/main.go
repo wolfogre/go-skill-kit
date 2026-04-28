@@ -64,16 +64,10 @@ func main() {
 
 	args := append(flags, os.Args[1:]...)
 
-	var cmd *exec.Cmd
-	if path, err := exec.LookPath("modernize"); err == nil {
-		cmd = exec.Command(path, args...)
-	} else {
-		gorunArgs := append(
-			[]string{"run", "golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest"},
-			args...,
-		)
-		cmd = exec.Command("go", gorunArgs...)
-	}
+	cmd := exec.Command("go", append(
+		[]string{"run", "golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest"},
+		args...,
+	)...)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
