@@ -43,7 +43,7 @@ Also must be run from the module root so the tool can resolve source paths.
 ```
 # The following lines are not covered by tests.
 
-## github.com/foo/bar/pkg/file.go
+## github.com/foo/bar/pkg/file.go: 8/10 (80.0%)
 
 10:	if err != nil {
 11:		return err
@@ -52,7 +52,7 @@ Also must be run from the module root so the tool can resolve source paths.
 17:	return nil
 ```
 
-- Each `##` section is one source file.
+- Each `##` section is one source file, with `covered/total statements (percentage)`.
 - Lines are `lineNum:source code` — no padding on the line number.
 - A blank line between groups means the blocks are non-consecutive in the file.
 - If the output is `all statements covered!`, there's nothing to do.

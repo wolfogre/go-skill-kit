@@ -18,6 +18,11 @@ type block struct {
 	endLine   int
 }
 
+type fileStat struct {
+	covered int
+	total   int
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: gocoverage <coverage.out> [coverage2.out ...]")
@@ -25,6 +30,7 @@ func main() {
 	}
 
 	var allBlocks []block
+	fileStats := map[string]*fileStat{}
 	for _, arg := range os.Args[1:] {
 		profiles, err := cover.ParseProfiles(arg)
 		if err != nil {
@@ -32,8 +38,14 @@ func main() {
 			os.Exit(1)
 		}
 		for _, p := range profiles {
+			if _, ok := fileStats[p.FileName]; !ok {
+				fileStats[p.FileName] = &fileStat{}
+			}
 			for _, b := range p.Blocks {
-				if b.Count == 0 {
+				fileStats[p.FileName].total += b.NumStmt
+				if b.Count > 0 {
+					fileStats[p.FileName].covered += b.NumStmt
+				} else {
 					allBlocks = append(allBlocks, block{p.FileName, b.StartLine, b.EndLine})
 				}
 			}
@@ -71,7 +83,12 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("## %s\n\n", file)
+		st := fileStats[file]
+		pct := 0.0
+		if st.total > 0 {
+			pct = float64(st.covered) / float64(st.total) * 100
+		}
+		fmt.Printf("## %s: %d/%d (%.1f%%)\n\n", file, st.covered, st.total, pct)
 		lastPrinted := -1
 		for _, b := range fileBlocks[file] {
 			for ln := b.startLine; ln <= b.endLine && ln <= len(lines); ln++ {
