@@ -18,13 +18,31 @@ type block struct {
 	endLine   int
 }
 
+type fileStat struct {
+	covered int
+	total   int
+}
+
+type blockKey struct {
+	startLine, startCol, endLine, endCol int
+}
+
+type mergedBlock struct {
+	numStmt  int
+	maxCount int
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: gocoverage <coverage.out> [coverage2.out ...]")
 		os.Exit(1)
 	}
 
-	var allBlocks []block
+	// Merge profiles: a block is covered if Count>0 in any profile.
+	var fileOrder []string
+	fileBlockOrder := map[string][]blockKey{}
+	fileBlockData := map[string]map[blockKey]*mergedBlock{}
+
 	for _, arg := range os.Args[1:] {
 		profiles, err := cover.ParseProfiles(arg)
 		if err != nil {
@@ -32,10 +50,38 @@ func main() {
 			os.Exit(1)
 		}
 		for _, p := range profiles {
+			if _, ok := fileBlockData[p.FileName]; !ok {
+				fileOrder = append(fileOrder, p.FileName)
+				fileBlockData[p.FileName] = map[blockKey]*mergedBlock{}
+			}
+			bm := fileBlockData[p.FileName]
 			for _, b := range p.Blocks {
-				if b.Count == 0 {
-					allBlocks = append(allBlocks, block{p.FileName, b.StartLine, b.EndLine})
+				k := blockKey{b.StartLine, b.StartCol, b.EndLine, b.EndCol}
+				if existing, ok := bm[k]; ok {
+					if b.Count > existing.maxCount {
+						existing.maxCount = b.Count
+					}
+				} else {
+					fileBlockOrder[p.FileName] = append(fileBlockOrder[p.FileName], k)
+					bm[k] = &mergedBlock{numStmt: b.NumStmt, maxCount: b.Count}
 				}
+			}
+		}
+	}
+
+	// Build allBlocks and fileStats from merged data.
+	var allBlocks []block
+	fileStats := map[string]*fileStat{}
+	for _, file := range fileOrder {
+		st := &fileStat{}
+		fileStats[file] = st
+		for _, k := range fileBlockOrder[file] {
+			mb := fileBlockData[file][k]
+			st.total += mb.numStmt
+			if mb.maxCount > 0 {
+				st.covered += mb.numStmt
+			} else {
+				allBlocks = append(allBlocks, block{file, k.startLine, k.endLine})
 			}
 		}
 	}
@@ -47,31 +93,36 @@ func main() {
 	}
 
 	// Group uncovered blocks by file, preserving order.
-	var fileOrder []string
+	uncoveredOrder := []string{}
 	fileBlocks := map[string][]block{}
 	for _, b := range allBlocks {
 		if _, ok := fileBlocks[b.file]; !ok {
-			fileOrder = append(fileOrder, b.file)
+			uncoveredOrder = append(uncoveredOrder, b.file)
 		}
 		fileBlocks[b.file] = append(fileBlocks[b.file], b)
 	}
 
-	if len(fileOrder) == 0 {
+	if len(uncoveredOrder) == 0 {
 		fmt.Println("# all statements covered!")
 		return
 	}
 
 	fmt.Println("# The following lines are not covered by tests.")
 	fmt.Println()
-	for _, file := range fileOrder {
+	for _, file := range uncoveredOrder {
 		srcPath := resolveSource(file, modName, modRoot, goModCache)
+		st := fileStats[file]
+		pct := 0.0
+		if st.total > 0 {
+			pct = float64(st.covered) / float64(st.total) * 100
+		}
 		lines, err := readLines(srcPath)
 		if err != nil {
-			fmt.Printf("## %s\n\n(source not found: %v)\n\n", file, err)
+			fmt.Printf("## %s: %d/%d (%.1f%%)\n\n(source not found: %v)\n\n", file, st.covered, st.total, pct, err)
 			continue
 		}
 
-		fmt.Printf("## %s\n\n", file)
+		fmt.Printf("## %s: %d/%d (%.1f%%)\n\n", file, st.covered, st.total, pct)
 		lastPrinted := -1
 		for _, b := range fileBlocks[file] {
 			for ln := b.startLine; ln <= b.endLine && ln <= len(lines); ln++ {
