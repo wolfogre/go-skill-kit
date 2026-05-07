@@ -12,13 +12,13 @@ Reads the project's `go.mod` to determine the Go version, enables only the analy
 Run from the module root:
 
 ```bash
-gomodernize ./...
+go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest ./...
 ```
 
 Or target a specific package:
 
 ```bash
-gomodernize ./internal/pkg/foo/...
+go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest ./internal/pkg/foo/...
 ```
 
 Output lists diagnostics with file, line, and suggested change. Exit code 0 means nothing to modernize.
@@ -26,7 +26,7 @@ Output lists diagnostics with file, line, and suggested change. Exit code 0 mean
 ## Step 2: Apply fixes
 
 ```bash
-gomodernize -fix ./...
+go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest -fix ./...
 ```
 
 Some fixes may leave unused imports or variables — these are trivial compile errors. Fix them before committing.
@@ -44,4 +44,4 @@ Check `git diff` before committing. Pay attention to:
 
 - `gomodernize` selects analyzers automatically based on the `go` directive in `go.mod`. There is no need to pass analyzer flags manually.
 - Extra flags (e.g. `-fix`, `-diff`, `-json`) are forwarded directly to `modernize`.
-- If `modernize` is not in `PATH`, `gomodernize` falls back to `go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest`.
+- Always uses `go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest` internally; no local installation required.

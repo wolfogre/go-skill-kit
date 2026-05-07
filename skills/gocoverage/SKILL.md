@@ -27,13 +27,13 @@ Run this from the module root (where `go.mod` lives).
 ## Step 2: Run gocoverage
 
 ```bash
-gocoverage coverage.out
+go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest coverage.out
 ```
 
 Multiple files are accepted and merged:
 
 ```bash
-gocoverage a.out b.out
+go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest a.out b.out
 ```
 
 Also must be run from the module root so the tool can resolve source paths.
