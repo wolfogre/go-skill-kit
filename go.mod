@@ -7,4 +7,4 @@ require (
 	golang.org/x/tools v0.44.0
 )
 
-require golang.org/x/net v0.53.0
+require golang.org/x/net v0.54.0
