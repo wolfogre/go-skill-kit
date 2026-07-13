@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	golang.org/x/mod v0.38.0
-	golang.org/x/tools v0.47.0
+	golang.org/x/tools v0.48.0
 )
 
-require golang.org/x/net v0.56.0
+require golang.org/x/net v0.57.0
