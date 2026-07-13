@@ -13,7 +13,13 @@ import (
 )
 
 func main() {
-	modRoot, modulePath, err := findModule()
+	startDir, err := moduleSearchDir(os.Args[1:])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "goimportsreviser: %v\n", err)
+		os.Exit(1)
+	}
+
+	modRoot, modulePath, err := findModule(startDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "goimportsreviser: %v\n", err)
 		os.Exit(1)
@@ -55,13 +61,22 @@ func main() {
 	}
 }
 
-// findModule walks up from cwd to find go.mod and returns the module root
-// directory and module path.
-func findModule() (root, modulePath string, err error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", "", err
+// moduleSearchDir decides where to start searching for go.mod: the first
+// non-flag argument (resolved to an absolute path) when one is given, so the
+// tool can be invoked from outside the module; otherwise the current directory.
+func moduleSearchDir(args []string) (string, error) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return filepath.Abs(a)
+		}
 	}
+	return os.Getwd()
+}
+
+// findModule walks up from startDir to find go.mod and returns the module root
+// directory and module path.
+func findModule(startDir string) (root, modulePath string, err error) {
+	dir := startDir
 	for {
 		candidate := filepath.Join(dir, "go.mod")
 		if _, err := os.Stat(candidate); err == nil {
