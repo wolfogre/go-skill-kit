@@ -81,8 +81,7 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}
 		fmt.Fprintf(os.Stderr, "gomodernize: %v\n", err)
