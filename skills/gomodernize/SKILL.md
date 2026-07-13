@@ -1,6 +1,7 @@
 ---
 name: gomodernize
 description: Check Go code for modernization opportunities and apply fixes. Use this whenever the user wants to modernize their Go code, update code to use newer standard library APIs, or before writing code review comments about outdated patterns — run gomodernize first to see what can be automatically improved.
+allowed-tools: Bash(go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest *)
 ---
 
 # gomodernize

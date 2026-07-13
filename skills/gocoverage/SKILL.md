@@ -1,6 +1,7 @@
 ---
 name: gocoverage
 description: Show which Go source lines are not covered by tests. Use this whenever the user wants to improve test coverage, asks what code is untested, or wants you to write tests — run this first to see exactly which lines need covering before writing any tests.
+allowed-tools: Bash(go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest *)
 ---
 
 # gocoverage

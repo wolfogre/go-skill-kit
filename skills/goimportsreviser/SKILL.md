@@ -1,6 +1,7 @@
 ---
 name: goimportsreviser
 description: Organize and format Go import statements. Use this whenever the user wants to fix import ordering, remove unused imports, or format imports — run goimportsreviser before finishing any code change that touches imports.
+allowed-tools: Bash(go run github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest *)
 ---
 
 # goimportsreviser
