@@ -4,6 +4,8 @@ A collection of CLI tools and [Copilot skills](https://docs.github.com/en/copilo
 
 Each tool under `cmd/` is a standalone binary. The matching skill under `skills/` tells a Copilot agent when and how to use it automatically.
 
+All tools are invoked via `go run ...@latest` — no installation required.
+
 ## Skills & tools
 
 | Skill | Binary | Description |
@@ -12,44 +14,18 @@ Each tool under `cmd/` is a standalone binary. The matching skill under `skills/
 | [gomodernize](skills/gomodernize/SKILL.md) | [cmd/gomodernize](cmd/gomodernize/main.go) | Run modernize with analyzers auto-selected by go.mod Go version |
 | [goimportsreviser](skills/goimportsreviser/SKILL.md) | [cmd/goimportsreviser](cmd/goimportsreviser/main.go) | Organize Go imports into std/general/company/project groups |
 
-## Install all
+## Install skills
 
-```bash
-go install github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest
-go install github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest
-go install github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest
-```
+Download all skill files:
 
 ```bash
 curl -sL https://github.com/wolfogre/go-skill-kit/archive/refs/heads/main.tar.gz | tar xz --strip-components=2 --include='*/skills/*'
 ```
 
-## gocoverage
-
-```bash
-go install github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest
-```
+Or per tool:
 
 ```bash
 curl -sL https://github.com/wolfogre/go-skill-kit/archive/refs/heads/main.tar.gz | tar xz --strip-components=2 --include='*/skills/gocoverage/*'
-```
-
-## gomodernize
-
-```bash
-go install github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest
-```
-
-```bash
 curl -sL https://github.com/wolfogre/go-skill-kit/archive/refs/heads/main.tar.gz | tar xz --strip-components=2 --include='*/skills/gomodernize/*'
-```
-
-## goimportsreviser
-
-```bash
-go install github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest
-```
-
-```bash
 curl -sL https://github.com/wolfogre/go-skill-kit/archive/refs/heads/main.tar.gz | tar xz --strip-components=2 --include='*/skills/goimportsreviser/*'
 ```

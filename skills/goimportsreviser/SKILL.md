@@ -15,7 +15,7 @@ Reads the project's `go.mod` to determine the module path and company domain, th
 ## Step 1: Run on the whole project
 
 ```bash
-goimportsreviser
+go run github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest
 ```
 
 Equivalent to running on `./...` from the module root. No arguments needed.
@@ -23,8 +23,8 @@ Equivalent to running on `./...` from the module root. No arguments needed.
 ## Step 2: Run on specific files or packages
 
 ```bash
-goimportsreviser ./internal/pkg/foo/...
-goimportsreviser path/to/file.go
+go run github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest ./internal/pkg/foo/...
+go run github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest path/to/file.go
 ```
 
 Any arguments are forwarded directly to `goimports-reviser`.
@@ -32,7 +32,7 @@ Any arguments are forwarded directly to `goimports-reviser`.
 ## Step 3: Preview without writing
 
 ```bash
-goimportsreviser -list-diff
+go run github.com/wolfogre/go-skill-kit/cmd/goimportsreviser@latest -list-diff
 ```
 
 Lists files whose imports differ without modifying them.
@@ -42,4 +42,4 @@ Lists files whose imports differ without modifying them.
 - `-rm-unused` is always enabled: unused imports are removed automatically.
 - `-format` is always enabled: code is also `gofmt`-formatted.
 - The company domain is derived from the module path in `go.mod` using the registered (eTLD+1) domain. For example, `code.example.com/org/repo` → company prefix `example.com`.
-- Requires Go in `PATH` (uses `go run github.com/incu6us/goimports-reviser/v3@latest` internally).
+- Requires Go in `PATH` (uses `go run github.com/incu6us/goimports-reviser/v3@latest` internally; no local installation required).
