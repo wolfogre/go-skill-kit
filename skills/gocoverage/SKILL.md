@@ -36,7 +36,11 @@ Multiple files are accepted and merged:
 go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest a.out b.out
 ```
 
-Also must be run from the module root so the tool can resolve source paths.
+The tool locates the module by walking up from the coverage file's path, so it can be run from anywhere - point it at a coverage file inside the module:
+
+```bash
+go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest /path/to/module/coverage.out
+```
 
 ## Step 3: Read the output
 

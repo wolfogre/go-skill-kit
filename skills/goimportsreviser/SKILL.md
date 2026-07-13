@@ -5,7 +5,7 @@ description: Organize and format Go import statements. Use this whenever the use
 
 # goimportsreviser
 
-Reads the project's `go.mod` to determine the module path and company domain, then runs `goimports-reviser` with the correct grouping:
+Locates the project's `go.mod` (from the given path argument, or the current directory when none is given) to determine the module path and company domain, then runs `goimports-reviser` with the correct grouping:
 
 1. **std** — Go standard library
 2. **general** — third-party packages
@@ -41,5 +41,6 @@ Lists files whose imports differ without modifying them.
 
 - `-rm-unused` is always enabled: unused imports are removed automatically.
 - `-format` is always enabled: code is also `gofmt`-formatted.
+- The module is located by walking up from the first path argument, or the current directory when no argument is given. You can run it from outside the module by passing an absolute path, e.g. `goimportsreviser -list-diff /path/to/module`.
 - The company domain is derived from the module path in `go.mod` using the registered (eTLD+1) domain. For example, `code.example.com/org/repo` → company prefix `example.com`.
 - Requires Go in `PATH` (uses `go run github.com/incu6us/goimports-reviser/v3@latest` internally; no local installation required).

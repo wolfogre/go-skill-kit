@@ -86,7 +86,7 @@ func main() {
 		}
 	}
 
-	modRoot, modName, goModCache, err := moduleInfo()
+	modRoot, modName, goModCache, err := moduleInfo(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading module info: %v\n", err)
 		os.Exit(1)
@@ -141,34 +141,59 @@ func main() {
 }
 
 // moduleInfo returns the module root directory, module name, and GOMODCACHE.
-func moduleInfo() (root, name, goModCache string, err error) {
-	out, err := exec.Command("go", "env", "GOMOD", "GOMODCACHE").Output()
+// The module is located by walking up from the first coverage file argument
+// (or the current directory when none is given), so the tool can be invoked
+// from outside the module.
+func moduleInfo(args []string) (root, name, goModCache string, err error) {
+	out, err := exec.Command("go", "env", "GOMODCACHE").Output()
 	if err != nil {
 		return "", "", "", err
 	}
-	lines := strings.SplitN(strings.TrimRight(string(out), "\n"), "\n", 2)
-	gomod := strings.TrimSpace(lines[0])
-	if len(lines) == 2 {
-		goModCache = strings.TrimSpace(lines[1])
+	goModCache = strings.TrimSpace(string(out))
+
+	startDir, err := moduleSearchDir(args)
+	if err != nil {
+		return "", "", "", err
 	}
 
-	if gomod == "" || gomod == os.DevNull {
-		return "", "", goModCache, nil
+	// Walk up from startDir to find go.mod. If none is found, return empty
+	// root/name but keep goModCache so external dependencies can still be
+	// resolved from the module cache.
+	dir := startDir
+	for {
+		candidate := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(candidate); err == nil {
+			data, err := os.ReadFile(candidate)
+			if err != nil {
+				return "", "", "", err
+			}
+			f, err := modfile.ParseLax(candidate, data, nil)
+			if err != nil {
+				return "", "", "", err
+			}
+			if f.Module != nil {
+				name = f.Module.Mod.Path
+			}
+			return dir, name, goModCache, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", "", goModCache, nil
+		}
+		dir = parent
 	}
-	root = filepath.Dir(gomod)
+}
 
-	data, err := os.ReadFile(gomod)
-	if err != nil {
-		return "", "", "", err
+// moduleSearchDir decides where to start searching for go.mod: the first
+// non-flag argument (resolved to an absolute path) when one is given, so the
+// tool can be invoked from outside the module; otherwise the current directory.
+func moduleSearchDir(args []string) (string, error) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return filepath.Abs(a)
+		}
 	}
-	f, err := modfile.ParseLax(gomod, data, nil)
-	if err != nil {
-		return "", "", "", err
-	}
-	if f.Module != nil {
-		name = f.Module.Mod.Path
-	}
-	return root, name, goModCache, nil
+	return os.Getwd()
 }
 
 // resolveSource finds the source file on disk for a coverage path.
