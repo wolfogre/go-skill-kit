@@ -50,7 +50,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	goMinor, err := readGoMinorVersion()
+	startDir, err := moduleSearchDir(os.Args[1:])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gomodernize: %v\n", err)
+		os.Exit(1)
+	}
+
+	goMinor, err := readGoMinorVersion(startDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "gomodernize: %v\n", err)
 		os.Exit(1)
@@ -75,8 +81,7 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}
 		fmt.Fprintf(os.Stderr, "gomodernize: %v\n", err)
@@ -84,11 +89,20 @@ func main() {
 	}
 }
 
-func readGoMinorVersion() (int, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return 0, err
+// moduleSearchDir decides where to start searching for go.mod: the first
+// non-flag argument (resolved to an absolute path) when one is given, so the
+// tool can be invoked from outside the module; otherwise the current directory.
+func moduleSearchDir(args []string) (string, error) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return filepath.Abs(a)
+		}
 	}
+	return os.Getwd()
+}
+
+func readGoMinorVersion(startDir string) (int, error) {
+	dir := startDir
 	for {
 		candidate := filepath.Join(dir, "go.mod")
 		if _, err := os.Stat(candidate); err == nil {

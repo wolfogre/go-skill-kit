@@ -1,11 +1,12 @@
 ---
 name: gomodernize
 description: Check Go code for modernization opportunities and apply fixes. Use this whenever the user wants to modernize their Go code, update code to use newer standard library APIs, or before writing code review comments about outdated patterns — run gomodernize first to see what can be automatically improved.
+allowed-tools: Bash(go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest *)
 ---
 
 # gomodernize
 
-Reads the project's `go.mod` to determine the Go version, enables only the analyzers whose required APIs are available in that version, then runs `modernize`.
+Locates the project's `go.mod` (from the given package argument, or the current directory when none is given) to determine the Go version, enables only the analyzers whose required APIs are available in that version, then runs `modernize`.
 
 ## Step 1: Check for issues (dry run)
 
@@ -19,6 +20,12 @@ Or target a specific package:
 
 ```bash
 go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest ./internal/pkg/foo/...
+```
+
+Or point it at a module from anywhere by passing an absolute path:
+
+```bash
+go run github.com/wolfogre/go-skill-kit/cmd/gomodernize@latest /path/to/module/...
 ```
 
 Output lists diagnostics with file, line, and suggested change. Exit code 0 means nothing to modernize.
@@ -43,5 +50,6 @@ Check `git diff` before committing. Pay attention to:
 ## Notes
 
 - `gomodernize` selects analyzers automatically based on the `go` directive in `go.mod`. There is no need to pass analyzer flags manually.
+- The module is located by walking up from the first package argument, or the current directory when no argument is given. You can run it from outside the module by passing an absolute path.
 - Extra flags (e.g. `-fix`, `-diff`, `-json`) are forwarded directly to `modernize`.
 - Always uses `go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest` internally; no local installation required.

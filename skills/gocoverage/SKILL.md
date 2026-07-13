@@ -1,6 +1,7 @@
 ---
 name: gocoverage
 description: Show which Go source lines are not covered by tests. Use this whenever the user wants to improve test coverage, asks what code is untested, or wants you to write tests — run this first to see exactly which lines need covering before writing any tests.
+allowed-tools: Bash(go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest *)
 ---
 
 # gocoverage
@@ -36,7 +37,11 @@ Multiple files are accepted and merged:
 go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest a.out b.out
 ```
 
-Also must be run from the module root so the tool can resolve source paths.
+The tool locates the module by walking up from the coverage file's path, so it can be run from anywhere - point it at a coverage file inside the module:
+
+```bash
+go run github.com/wolfogre/go-skill-kit/cmd/gocoverage@latest /path/to/module/coverage.out
+```
 
 ## Step 3: Read the output
 
