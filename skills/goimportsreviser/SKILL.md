@@ -10,7 +10,7 @@ Locates the project's `go.mod` (from the given path argument, or the current dir
 
 1. **std** — Go standard library
 2. **general** — third-party packages
-3. **company** — packages sharing the same registered domain as the project (e.g. `example.com`)
+3. **company** — packages from the same host as the project (e.g. `code.example.com`)
 4. **project** — packages within the current module
 
 ## Step 1: Run on the whole project
@@ -43,5 +43,5 @@ Lists files whose imports differ without modifying them.
 - `-rm-unused` is always enabled: unused imports are removed automatically.
 - `-format` is always enabled: code is also `gofmt`-formatted.
 - The module is located by walking up from the first path argument, or the current directory when no argument is given. You can run it from outside the module by passing an absolute path, e.g. `goimportsreviser -list-diff /path/to/module`.
-- The company domain is derived from the module path in `go.mod` using the registered (eTLD+1) domain. For example, `code.example.com/org/repo` → company prefix `example.com`.
+- The company prefix is derived from the module path in `go.mod`: it is the host (the first path component), since goimports-reviser groups imports by matching the prefix against the full import path with `strings.HasPrefix`. For example, `code.example.com/org/repo` → company prefix `code.example.com`.
 - Requires Go in `PATH` (uses `go run github.com/incu6us/goimports-reviser/v3@latest` internally; no local installation required).

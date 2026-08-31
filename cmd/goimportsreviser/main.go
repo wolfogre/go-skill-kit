@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"golang.org/x/mod/modfile"
-	"golang.org/x/net/publicsuffix"
 )
 
 func main() {
@@ -34,8 +33,8 @@ func main() {
 
 	if modulePath != "" {
 		args = append(args, "-project-name", modulePath)
-		if domain := companyDomain(modulePath); domain != "" {
-			args = append(args, "-company-prefixes", domain)
+		if prefix := companyPrefix(modulePath); prefix != "" {
+			args = append(args, "-company-prefixes", prefix)
 		}
 	}
 
@@ -100,20 +99,21 @@ func findModule(startDir string) (root, modulePath string, err error) {
 	}
 }
 
-// companyDomain extracts the registered domain (eTLD+1) from a module path.
+// companyPrefix returns the import-path prefix shared by packages from the
+// same organization as the module. goimports-reviser matches company prefixes
+// with strings.HasPrefix against the full import path, so the prefix must be
+// the module path's host (its first path component) rather than the
+// registered eTLD+1 domain: for "code.example.com/org/repo", the eTLD+1
+// "example.com" never prefixes "code.example.com/...", while the host does.
 // For example:
 //
-//	"code.example.com/org/repo" → "example.com"
+//	"code.example.com/org/repo" → "code.example.com"
 //	"github.com/user/repo"      → "github.com"
 //	"myapp"                     → ""
-func companyDomain(modulePath string) string {
+func companyPrefix(modulePath string) string {
 	host, _, _ := strings.Cut(modulePath, "/")
 	if !strings.Contains(host, ".") {
 		return ""
 	}
-	domain, err := publicsuffix.EffectiveTLDPlusOne(host)
-	if err != nil {
-		return host
-	}
-	return domain
+	return host
 }
